@@ -3,7 +3,7 @@
 Coonnect-AzAccount
 
 # 리소스 그룹 제거
-Remove-AzResourceGroup -Name $resourcegroup1
+Remove-AzResourceGroup -Name $resourcegroup
 
 #  리소스 그룹 이름 생성 
 
@@ -11,50 +11,50 @@ Remove-AzResourceGroup -Name $resourcegroup1
 $LocationName = "koreacentral"
 
 # 리소스 그룹 이름
-$resourcegroup1 = "RG-Korea"
+$resourcegroup = "RG-Korea"
 # $resourcegroup2 = "RG-Japan"
 # $resourcegroup3 = "RG-US"
 
 
 
-New-AzResourceGroup -Name $resourcegroup1 -Location $LocationName
-New-AzResourceGroup -Name $resourcegroup2 -Location "japaneast"
-New-AzResourceGroup -Name $resourcegroup3 -Location "central US"
+New-AzResourceGroup -Name $resourcegroup -Location $LocationName
+#New-AzResourceGroup -Name $resourcegroup2 -Location "japaneast"
+#New-AzResourceGroup -Name $resourcegroup3 -Location "central US"
 
 # VNET , Subnet, NSG 생성 및 연결 (RG, VNET,SUBNET 1 EA, NSG는 회사 IP만 접근 가능토록.. )
-# $rg1= New-AzResourceGroup -Name $resourcegroup1 -Location "koreacentral"
+# $rg1= New-AzResourceGroup -Name $resourcegroup -Location "koreacentral"
 
-$rdpRule1              = New-AzNetworkSecurityRuleConfig -Name "rdp-rule" -Description "Allow RDP" -Access Allow -Protocol Tcp -Direction Inbound -Priority 100 -SourceAddressPrefix 123.141.145.23 -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 3389
-$httpRule2             = New-AzNetworkSecurityRuleConfig -Name "http-rule" -Description "Allow HTTP" -Access Allow -Protocol Tcp -Direction Inbound -Priority 101 -SourceAddressPrefix 123.141.145.23 -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 80
+$rdpRule              = New-AzNetworkSecurityRuleConfig -Name "rdp-rule" -Description "Allow RDP" -Access Allow -Protocol Tcp -Direction Inbound -Priority 100 -SourceAddressPrefix 123.141.145.23 -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 3389
+$sshRule              = New-AzNetworkSecurityRuleConfig -Name "ssh-rule" -Description "Allow SSH" -Access Allow -Protocol Tcp -Direction Inbound -Priority 100 -SourceAddressPrefix 123.141.145.23 -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 22
+$httpRule             = New-AzNetworkSecurityRuleConfig -Name "http-rule" -Description "Allow HTTP" -Access Allow -Protocol Tcp -Direction Inbound -Priority 101 -SourceAddressPrefix * -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 80
 
-$networkSecurityGroup1 = New-AzNetworkSecurityGroup -ResourceGroupName $resourcegroup1 -Location $LocationName -Name "NSG-FrontEnd" -SecurityRules $rdpRule1,$httpRule2
-$frontendSubnet1       = New-AzVirtualNetworkSubnetConfig -Name "frontendSubnet1" -AddressPrefix "10.0.1.0/24" -NetworkSecurityGroup $networkSecurityGroup1
-$vnet1 = New-AzVirtualNetwork -Name "VNET-KC" -ResourceGroupName $resourcegroup1 -Location $LocationName -AddressPrefix "10.0.0.0/16" -Subnet $frontendSubnet1
+$networkSecurityGroup = New-AzNetworkSecurityGroup -ResourceGroupName $resourcegroup -Location $LocationName -Name "NSG-FrontEnd" -SecurityRules $rdpRule,$httpRule
+$Subnet       = New-AzVirtualNetworkSubnetConfig -Name "snet-01" -AddressPrefix "10.0.1.0/24" -NetworkSecurityGroup $networkSecurityGroup
+$vnet = New-AzVirtualNetwork -Name "VNET-KC" -ResourceGroupName $resourcegroup -Location $LocationName -AddressPrefix "10.0.0.0/16" -Subnet $Subnet
 
 # $backendSubnet        = New-AzVirtualNetworkSubnetConfig -Name "backendSubnet"  -AddressPrefix "10.0.2.0/24" -NetworkSecurityGroup $networkSecurityGroup
-# New-AzVirtualNetwork -Name "VNET-KC" -ResourceGroupName "RG-Korea" -Location "koreacentral" -AddressPrefix "10.0.0.0/16" -Subnet $frontendSubnet,$backendSubnet
+# New-AzVirtualNetwork -Name "VNET-KC" -ResourceGroupName "RG-Korea" -Location "koreacentral" -AddressPrefix "10.0.0.0/16" -Subnet $Subnet,$backendSubnet
 
 # PIP 생성 (VM 1ea만, 나머지는 사설 IP) -> foreach 돌리고, PIP 추가 할 것! 
 
 # $PIP1 = Get-AzPublicIPAddress -Name "PIP1" -ResourceGroupName "RG-Korea"
-$PIP1 = New-AzPublicIpAddress -Name "PIP1" -ResourceGroupName $resourcegroup1 -AllocationMethod Static -Location $LocationName -Sku "Standard"
+$PIP1 = New-AzPublicIpAddress -Name "PIP1" -ResourceGroupName $resourcegroup -AllocationMethod Static -Location $LocationName -Sku "Standard"
 # $IPConfig1 = New-AzNetworkInterfaceIpConfig -Name "IPConfig-1" -PrivateIpAddressVersion "IPv4" -PrivateIpAddress "10.0.1.9" -Primary -SubnetId $vnet1.Subnets.Id -PublicIpAddressId $PIP1.Id
-$nic1 = New-AzNetworkInterface -Name "NIC1" -ResourceGroupName $resourcegroup1 -Location $LocationName -SubnetId $vnet1.Subnets.Id -PublicIpAddressId $PIP1.id -PrivateIpAddress 10.0.1.9
+$nic1 = New-AzNetworkInterface -Name "NIC1" -ResourceGroupName $resourcegroup -Location $LocationName -SubnetId $vnet.Subnets.Id -PublicIpAddressId $PIP1.id -PrivateIpAddress 10.0.1.9
 # -IpConfigurationName $IPConfig1
 
 # -SubnetId $vnet1.Subnets.Id
 
 # 그 외 VM 사설 IP 생성
 # $IPConfig2 = New-AzNetworkInterfaceIpConfig -Name "IP-Config2" -SubnetId $vnet1.Subnets.Id -PrivateIpAddressVersion "IPv4" -PrivateIpAddress "10.0.1.11"
-$nic2 = New-AzNetworkInterface -Name "NIC2" -ResourceGroupName $resourcegroup1 -Location $LocationName -SubnetId $vnet1.Subnets.Id 
-
+$nic2 = New-AzNetworkInterface -Name "NIC2" -ResourceGroupName $resourcegroup -Location $LocationName -SubnetId $vnet.Subnets.Id
 
 # $IPConfig3 = New-AzNetworkInterfaceIpConfig -Name "IP-Config3" -SubnetId $vnet1.Subnets.Id -PrivateIpAddressVersion "IPv4" -PrivateIpAddress "10.0.1.12"
-$nic3 = New-AzNetworkInterface -Name "NIC3" -ResourceGroupName $resourcegroup1 -Location $LocationName -SubnetId $vnet1.Subnets.Id 
+$nic3 = New-AzNetworkInterface -Name "NIC3" -ResourceGroupName $resourcegroup -Location $LocationName -SubnetId $vnet.Subnets.Id
 
 
 # 가용성 집합 추가
-$avset = New-AzAvailabilitySet -ResourceGroupName $resourcegroup1 -Name "AvSet01" -Location $LocationName -PlatformFaultDomainCount 2 -PlatformUpdateDomainCount 3 -Sku "Aligned"
+$avset = New-AzAvailabilitySet -ResourceGroupName $resourcegroup -Name "AvSet01" -Location $LocationName -PlatformFaultDomainCount 2 -PlatformUpdateDomainCount 3 -Sku "Aligned"
 
 # VM01 생성
 
@@ -76,13 +76,13 @@ $VMSize = "Standard_B1ls"
 #Networking 
 $NetworkName = "VNET-KC"
 $NICName = "NIC1"
-$SubnetName = "frontendSubnet1"
+$SubnetName = "Subnet"
 $SubnetAddressPrefix = "10.0.1.0/24"
 $VnetAddressPrefix = "10.0.0.0/16"
 
 $SingleSubnet = New-AzVirtualNetworkSubnetConfig -Name $SubnetName -AddressPrefix $SubnetAddressPrefix
-$Vnet = New-AzVirtualNetwork -Name $NetworkName -ResourceGroupName $resourcegroup1 -Location $LocationName -AddressPrefix $VnetAddressPrefix -Subnet $SingleSubnet
-$NIC = New-AzNetworkInterface -Name $NICName -ResourceGroupName $resourcegroup1 -Location $LocationName -SubnetId $Vnet.Subnets[0].Id
+$Vnet = New-AzVirtualNetwork -Name $NetworkName -ResourceGroupName $resourcegroup -Location $LocationName -AddressPrefix $VnetAddressPrefix -Subnet $SingleSubnet
+$NIC = New-AzNetworkInterface -Name $NICName -ResourceGroupName $resourcegroup -Location $LocationName -SubnetId $vnet.Subnets[0].Id
 ###
 
 $Credential = New-Object System.Management.Automation.PSCredential ($VMLocalAdminUser, $VMLocalAdminSecurePassword);
@@ -99,7 +99,7 @@ Set-AzVMOperatingSystem -VM $VirtualMachine -Linux -ComputerName $ComputerName -
 Add-AzVMNetworkInterface -VM $VirtualMachine -Id $nic1.Id
 Set-AzVMSourceImage -VM $VirtualMachine -PublisherName "Canonical" -Offer "UbuntuServer" -Skus "18.04-LTS" -Version latest
 
-New-AzVM -ResourceGroupName $resourcegroup1 -Location $LocationName -VM $VirtualMachine -Verbose
+New-AzVM -ResourceGroupName $resourcegroup -Location $LocationName -VM $VirtualMachine -Verbose
 
 
 
@@ -122,7 +122,7 @@ $VMSize2 = "Standard_B1ls"
 
 ###
 # nic 생성 
-$nic2 = New-AzNetworkInterface -Name "NIC2" -ResourceGroupName $resourcegroup1 -Location $LocationName -SubnetId $vnet1.Subnets.Id
+$nic2 = New-AzNetworkInterface -Name "NIC2" -ResourceGroupName $resourcegroup -Location $LocationName -SubnetId $vnet1.Subnets.Id
 ###
 
 $Credential = New-Object System.Management.Automation.PSCredential ($VMLocalAdminUser, $VMLocalAdminSecurePassword);
@@ -139,7 +139,7 @@ Set-AzVMOperatingSystem -VM $VirtualMachine -Linux -ComputerName $ComputerName -
 Add-AzVMNetworkInterface -VM $VirtualMachine -Id $nic2.Id
 Set-AzVMSourceImage -VM $VirtualMachine -PublisherName "Canonical" -Offer "UbuntuServer" -Skus "18.04-LTS" -Version latest
 
-New-AzVM -ResourceGroupName $resourcegroup1 -Location $LocationName -VM $VirtualMachine -Verbose
+New-AzVM -ResourceGroupName $resourcegroup -Location $LocationName -VM $VirtualMachine -Verbose
 
 #####################
 # VM02 생성
@@ -151,7 +151,7 @@ New-AzVM -ResourceGroupName $resourcegroup1 -Location $LocationName -VM $Virtual
 $VMLocalAdminUser = "shjoo"
 $VMLocalAdminSecurePassword = ConvertTo-SecureString "P@ssw0rd1!" -AsPlainText -Force
 
-# 가상 머신 호스트 OS 이름을 설정. Win 15, Linux 64 자. 
+# 가상 머신 호스트 OS 이름을 설정. Win 15, Linux 64자
 $ComputerName = "shVM"
 
 # VM 세부 사항 
@@ -160,7 +160,7 @@ $VMSize = "Standard_B1s"
 
 ###
 # nic 생성 
-$nic3 = New-AzNetworkInterface -Name "NIC3" -ResourceGroupName $resourcegroup1 -Location $LocationName -SubnetId $vnet1.Subnets.Id 
+$nic3 = New-AzNetworkInterface -Name "NIC3" -ResourceGroupName $resourcegroup -Location $LocationName -SubnetId $vnet.Subnets.Id 
 ###
 
 $Credential = New-Object System.Management.Automation.PSCredential ($VMLocalAdminUser, $VMLocalAdminSecurePassword);
@@ -177,7 +177,7 @@ Set-AzVMOperatingSystem -VM $VirtualMachine -Linux -ComputerName $ComputerName -
 Add-AzVMNetworkInterface -VM $VirtualMachine -Id $nic3.Id
 Set-AzVMSourceImage -VM $VirtualMachine -PublisherName "Canonical" -Offer "UbuntuServer" -Skus "18.04-LTS" -Version latest
 
-New-AzVM -ResourceGroupName $resourcegroup1 -Location $LocationName -VM $VirtualMachine -Verbose
+New-AzVM -ResourceGroupName $resourcegroup -Location $LocationName -VM $VirtualMachine -Verbose
 
 
 
