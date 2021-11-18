@@ -11,6 +11,29 @@ $resourcedocs
 
 $resourceinfos = import-csv -Path $r
 
+$vminfo | Where-Object {$_.kind -eq "Name"} | Format-Table
+
+# 프로퍼티 선언 처리 
+$resourceinfos | Select-Object
+
+# String 문자열 처리 
+$resourceinfos | Select-String 
+
+# 
+# https://ss64.com/ps/select-string.html
+# 정규 표현식 숙지하자.
+# String 에 해당하는 패턴 라인 전부 출력 
+$resourceinfos | Select-String -Pattern "resourcegroup"
+
+# 속성에 해당하는 행만 출력
+$resourceinfos | Select-Object -Property "kind"
+
+# 파이프를 연속으로 활용하여 원하는 값을 도출할 수 있다. 따로 선언하지 않고 넘겨주고 넘겨줄 수 있다는 특징을 가진다.
+$resourceinfos | Select-Object -Property "kind" | select-string -Pattern "resourcegroup"
+
+# 내가 원하는 정보를 패턴을 해서 모두 뽑아낼 것이냐? No
+$resourceinfos | Select-String -Pattern "resourcegroup"
+
 # 리소스 그룹 제거
 Remove-AzResourceGroup -Name $resourcegroup
 
@@ -49,9 +72,9 @@ $vnet = New-AzVirtualNetwork -Name "VNET-KC" -ResourceGroupName $resourcegroup -
 # PIP 생성 (VM 1ea만, 나머지는 사설 IP) -> foreach 돌리고, PIP 추가 할 것! 
 
 # $PIP1 = Get-AzPublicIPAddress -Name "PIP1" -ResourceGroupName "RG-Korea"
-$PIP1 = New-AzPublicIpAddress -Name "PIP1" -ResourceGroupName $resourcegroup -AllocationMethod Static -Location $LocationName -Sku "Standard"
+$PIP = New-AzPublicIpAddress -Name "PIP" -ResourceGroupName $resourcegroup -AllocationMethod Static -Location $LocationName -Sku "Standard"
 # $IPConfig1 = New-AzNetworkInterfaceIpConfig -Name "IPConfig-1" -PrivateIpAddressVersion "IPv4" -PrivateIpAddress "10.0.1.9" -Primary -SubnetId $vnet1.Subnets.Id -PublicIpAddressId $PIP1.Id
-$nic1 = New-AzNetworkInterface -Name "NIC1" -ResourceGroupName $resourcegroup -Location $LocationName -SubnetId $vnet.Subnets.Id -PublicIpAddressId $PIP1.id -PrivateIpAddress 10.0.1.9
+$nic = New-AzNetworkInterface -Name "NIC$i" -ResourceGroupName $resourcegroup -Location $LocationName -SubnetId $vnet.Subnets.Id -PublicIpAddressId $PIP1.id -PrivateIpAddress 10.0.1.9
 # -IpConfigurationName $IPConfig1
 
 # -SubnetId $vnet1.Subnets.Id
@@ -77,10 +100,10 @@ $VMLocalAdminUser = "shjoo"
 $VMLocalAdminSecurePassword = ConvertTo-SecureString "P@ssw0rd1!" -AsPlainText -Force
 
 # 가상 머신 호스트 OS 이름을 설정. Win 15, Linux 64 자. 
-$ComputerName = "shVM"
+$ComputerName = "shVM$i"
 
 # VM 세부 사항 
-$VMName = "shVM"
+$VMName = "shVM$i"
 $VMSize = "Standard_B1ls"
 
 ### 
@@ -101,13 +124,13 @@ $Credential = New-Object System.Management.Automation.PSCredential ($VMLocalAdmi
 # Windows - 최소 이미지 크기 B1s 
 $VirtualMachine = New-AzVMConfig -VMName $VMName -VMSize $VMSize -AvailabilitySetID $avset.Id
 Set-AzVMOperatingSystem -VM $VirtualMachine -Windows -ComputerName $ComputerName -Credential $Credential -ProvisionVMAgent -EnableAutoUpdate
-Add-AzVMNetworkInterface -VM $VirtualMachine -Id $nic1.Id
+Add-AzVMNetworkInterface -VM $VirtualMachine -Id $nic.Id
 Set-AzVMSourceImage -VM $VirtualMachine -PublisherName 'MicrosoftWindowsServer' -Offer 'WindowsServer' -Skus '2019-Datacenter' -Version latest
 
 # Linux - 최소 이미지 크기 B1ls 
 $VirtualMachine = New-AzVMConfig -VMName $VMName -VMSize $VMSize -AvailabilitySetID $avset.Id
 Set-AzVMOperatingSystem -VM $VirtualMachine -Linux -ComputerName $ComputerName -Credential $Credential
-Add-AzVMNetworkInterface -VM $VirtualMachine -Id $nic1.Id
+Add-AzVMNetworkInterface -VM $VirtualMachine -Id $nic.Id
 Set-AzVMSourceImage -VM $VirtualMachine -PublisherName "Canonical" -Offer "UbuntuServer" -Skus "18.04-LTS" -Version latest
 
 New-AzVM -ResourceGroupName $resourcegroup -Location $LocationName -VM $VirtualMachine -Verbose

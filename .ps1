@@ -97,11 +97,11 @@ foreach ($vmname in ($vminfo.name)){
 ### Errorvaroable foreach 동작 시 에러를 띄우기 위함(디버깅)
 ### 콤마, 세미콜런, Delimiter라 부른다. 
 ### 한글 UTF-8 , 그 외 ANSI
-$resourcedocs = Import-csv -Path "C:\Users\shj\shtest\Git_Test\resourcecreate.csv"
+$resourcedocs = Import-csv -Path "C:\Users\20132\git\resourcecreate.csv"
 
 $resourcedocs
 
-$resourceinfos = import-csv -Path $resourcedocs
+$resourceinfos = import-csv -Path $rsourcedocs
 $resourceinfos = import-csv -Path "C:\Users\shj\shtest\Git_Test\resourcecreate.csv"
 
 ### 포맷 테이블 - 테이블 형태로 변경
