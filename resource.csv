@@ -1,0 +1,15 @@
+kind,name,ipaddress,publicip,updatedomain,faultdomain,size,ostype,publisher,offer,sku,protocol,priority,sourceaddress,sourceport,destaddress,destport,Desc
+resourcegroup,rg-korea,,,,,,,,,,,,,,,,
+vnet,vnet-kc,10.0.0.0/16,,,,,,,,,,,,,,,
+subnet,snet-fe,10.0.1.0/24,,,,,,,,,,,,,,,
+vm,vm-kc-01,,yes,,,standard_B1ls,linux,Canonical,UbuntuServer,18.04-LTS,,,,,,,
+vm,vm-kc-02,,,,,standard_B1ls,linux,Canonical,UbuntuServer,18.04-LTS,,,,,,,
+vm,vm-kc-03,,,,,standard_B1ls,linux,Canonical,UbuntuServer,18.04-LTS,,,,,,,
+avset,avset01,,,5,2,,,,,aligned,,,,,,,
+pip,vm-01-pip,,yes,,,,,,,standard,,,,,,,
+nsg,nsg-frontend,,,,,,,,,,,,,,,,
+nsgrule,ssh-rule,,,,,,,,,,Tcp,101,123.141.145.23,*,*,22,Allow SSH
+nsgrule,http-rule,,,,,,,,,,Tcp,102,123.141.145.23,*,*,80,Allow HTTP
+nic,nic01,10.0.1.10,yes,,,,,,,,,,,,,,
+nic,nic02,10.0.1.11,,,,,,,,,,,,,,,
+nic,nic03,10.0.1.12,,,,,,,,,,,,,,,

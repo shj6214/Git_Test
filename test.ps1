@@ -1,2 +1,0 @@
-Connect-AzAccount
-Get-Module
