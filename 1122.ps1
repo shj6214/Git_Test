@@ -56,7 +56,9 @@ foreach ($vm in $vms) {
 
 while (condition){
     $processliveCheck = get-process -Name notepad
-    if($null -eq $processliveCheck)
+    if($null -eq $processliveCheck){
+        
+    }
 
     Start-Sleep -Seconds 5 
 }
