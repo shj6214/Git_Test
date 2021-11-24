@@ -6,27 +6,18 @@ Connect-AzAccount
 # csv 파일 임포트 선언
 $resourceinfos = Import-csv -Path "C:\Users\shj\shtest\Git_Test\resource_v2.1.csv"
 
-# csv 파일 리소스 별 변수 생성
-$VMs = $resourceinfos | Where-Object {$_.kind -eq "vm"}
-$Nics = $resourceinfos | Where-Object {$_.kind -eq "nic"} 
-$LBs = $resourceinfos | Where-Object {$_.kind -eq "lb"}
-
-
-#$LBrules = $resourceinfos | Where-Object {$_.kind -eq "lbrule"}
-#$LBfeips = $resourceinfos | Where-Object {$_.kind -eq "lbfeip"}
-#$LBprobe = $resourceinfos | Where-Object {$_.kind -eq "lbprobe"}
-#$LBpool = $resourceinfos | Where-Object {$_.kind -eq "lbpool"}
-
 # RG 생성 (kc je ue 3ea)
 $RGs = $resourceinfos | Where-Object {$_.kind -eq "resourcegroup"}
+
 foreach($RG in $RGs){
     New-AzResourceGroup -Name $RG.name -Location $RG.region
 }
 
 # NSG 생성 및 NSG 세부 규칙 연결 (nsg 1 nsgrule 1ea)
 $nsgs = $resourceinfos | Where-Object {$_.kind -eq "nsg"}
+
 foreach($nsg in $nsgs){
-    # NSG rule 생성 ("회사 IP"만 접근 가능토록) => NSG Rule 2개 생성 (nsg rule 1ea HTTP))
+    # NSG rule 생성 (HTTP 1ea))
     $new_nsgrule = New-AzNetworkSecurityRuleConfig -Name $nsg.nsgrule -Description $nsg.Desc -Access "Allow" -Protocol $nsg.protocol -Direction Inbound -Priority $nsg.priority -SourceAddressPrefix * -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange $nsg.destport
     New-AzNetworkSecurityGroup -ResourceGroupName $nsg.region -Location $nsg.refer -Name $nsg.name -SecurityRules $new_nsgrule
 }
@@ -35,6 +26,7 @@ foreach($nsg in $nsgs){
 $Vnets = $resourceinfos | Where-Object {$_.kind -eq "vnet"}
 $Subnets = $resourceinfos | Where-Object {$_.kind -eq "subnet"}
 $gwsubnet = $resourceinfos | Where-Object {$_.kind -eq "gatewaysubnet"}
+
 foreach($vnet in $vnets){
     $new_vnet = New-AzVirtualNetwork -Name $vnet.name -ResourceGroupName $vnet.refer -Location $vnet.region -AddressPrefix $vnet.ipaddress
     foreach($subnet in $Subnets){
@@ -42,53 +34,49 @@ foreach($vnet in $vnets){
     } 
 }
 
-# PIP 생성 (PIP 3 ea)
+# PIP 세팅
 $Pips = $resourceinfos | Where-Object {$_.kind -eq "pip"}
+    # PIP 생성 (PIP 3 ea)
 $New_Pip = foreach($pip in $Pips){
     New-AzPublicIpAddress -Name $pip.name -ResourceGroupName $pip.refer -AllocationMethod "Static" -Location $pip.region -Sku $pip.sku
 }
 
-# LB - FEIP 생성 (3ea)
-$new_feips = for($i=0; $i -lt $new_pip.length; $i++){
-    New-AzLoadBalancerFrontendIpConfig -Name $LBfeips.Name[$i] -PublicIpAddressId $new_pip.Id[$i]
-}
+# LB 세팅 
+$LBs = $resourceinfos | Where-Object {$_.kind -eq "lb"}
 
-# LB - BackEnd POOL 생성 (1ea)
-$new_lbpool = New-AzLoadBalancerBackendAddressPoolConfig -Name $lbpool.name
+foreach($LB in $LBs){
+    
+    # LB - BackEnd POOL 생성 (3ea)
+    $new_lbpool = New-AzLoadBalancerBackendAddressPoolConfig -Name $LB.lbPool
 
-# LB - Probe 생성 (1ea)
-$new_probe = New-AzLoadBalancerProbeConfig -Name $LBprobe.name -Protocol $LBprobe.protocol -Port $LBprobe.destport -IntervalInSeconds 360 -ProbeCount 5 -RequestPath '/'
+    # LB - Probe 생성 (3ea)
+    $new_probe = New-AzLoadBalancerProbeConfig -Name $LB.lbprobe -Protocol $LB.protocol -Port $LB.destport -IntervalInSeconds 360 -ProbeCount 5 -RequestPath '/'
+    
+    # LB - FEIP 생성 (3ea)
+    $new_FEips = New-AzLoadBalancerFrontendIpConfig -Name $LB.lbfrontip -PublicIpAddressId $New_Pip.Id
 
-# LB - LBrule 생성 (3ea)
-$new_lbrules = for($i=0; $i -lt $new_pip.length; $i++){
-    New-AzLoadBalancerRuleConfig -Name $LBrules.name[$i] -Protocol $LBrules.protocol[$i] -FrontendPort $lbrules.sourceport[$i] -BackendPort $LBrules.destport[$i] -IdleTimeoutInMinutes 15 -FrontendIpConfigurationId $new_feips.id[$i]
-}
+    # LB - LBrule 생성 (3ea)
+    $New_LBrules = New-AzLoadBalancerRuleConfig -Name $LB.lbrule -Protocol $LB.protocol -FrontendPort $LB.sourceport -BackendPort $LB.destport -IdleTimeoutInMinutes 15 -FrontendIpConfigurationId $new_FEIP.Id
 
-# LB 생성 (3ea)
-$new_lb = for($i=0; $i -lt $LBs.length; $i++){
-    New-AzLoadBalancer -ResourceGroupName $new_rg.ResourceGroupName[$i] -Name $LBs.name[$i] -Location $new_rg.Location[$i] -Sku $Lbs.sku[$i] -FrontendIpConfiguration $new_feips[$i] -BackendAddressPool $new_lbpool -LoadBalancingRule $new_lbrules[$i] -Probe $new_probe
+    # LB - 생성 
+    New-AzLoadBalancer -ResourceGroupName $LB.refer -Name $LB.name -Location $LB.region -Sku $LB.sku -FrontendIpConfiguration $new_FEIP -BackendAddressPool $new_lbpool -LoadBalancingRule $New_LBrules -Probe $new_probe
 }
 
 
 # nic 01 ~ 03 3 개 생성 + 백엔드풀 규칙 추가 
-$new_nics = for($i=0; $i -lt $vnets.length; $i++){
-    if($nics.name[$i] -eq "nic01") {
-        New-AzNetworkInterface -Name $nics.name[$i] -ResourceGroupName $new_rg.ResourceGroupName[$i] -Location $new_rg.Location[$i] -SubnetId $new_vnet.Subnets[$i+1].id -NetworkSecurityGroupId $New_Nsg.id[$i] -LoadBalancerBackendAddressPoolId $new_lbpool.Id
-    } 
-    elseif($nics.name[$i] -eq "nic02"){
-        New-AzNetworkInterface -Name $nics.name[$i] -ResourceGroupName $new_rg.ResourceGroupName[$i] -Location $new_rg.Location[$i] -SubnetId $new_vnet.Subnets[$i+2].id -NetworkSecurityGroupId $New_Nsg.id[$i] -LoadBalancerBackendAddressPoolId $new_lbpool.Id
-    }
-    elseif($nics.name[$i] -eq "nic03") {
-        New-AzNetworkInterface -Name $nics.name[$i] -ResourceGroupName $new_rg.ResourceGroupName[$i] -Location $new_rg.Location[$i] -SubnetId $new_vnet.Subnets[$i+3].id -NetworkSecurityGroupId $New_Nsg.id[$i] -LoadBalancerBackendAddressPoolId $new_lbpool.Id
-    }
+$Nics = $resourceinfos | Where-Object {$_.kind -eq "nic"}
+foreach($nic in $nics){
+    New-AzNetworkInterface -Name $nics.name -ResourceGroupName $nics.name -Location $nics.region -SubnetId $ -NetworkSecurityGroupId $New_Nsg.id[$i] -LoadBalancerBackendAddressPoolId $.Id
 }
 
 
 # VM01 생성 및 관리자 계정 생성, 암호화되지않은 표준 문자열을 보안 문자열로 변환
 # VM 3 대 배포 kc-02, ue-02, je-02 
+$VMs = $resourceinfos | Where-Object {$_.kind -eq "vm"}
 $VMAdminUser = "shjoo"
 $VMAdminSecurePassword = ConvertTo-SecureString "P@ssw0rd1!" -AsPlainText -Force
 $Cred = New-Object System.Management.Automation.PSCredential ($VMAdminUser, $VMAdminSecurePassword);
+
 
 for ($i=0; $i -lt $VMs.length; $i++){
     
@@ -107,6 +95,16 @@ Add-AzVirtualNetworkPeering -Name "peer-kc-to-kc2" -VirtualNetwork $New_VNET[0] 
 # Peer VNet2 to VNet1.
 Add-AzVirtualNetworkPeering -Name "peer-kc2-to-kc" -VirtualNetwork $New_VNET[1] -RemoteVirtualNetworkId $New_VNET[0].id
 
+# OutBound Setting
+$KRPublicIPoutbound = New-AzPublicIpAddress -Name $KRPublicIPoutboundName -ResourceGroupName $ResourceGroupName -Location $KRLocation -sku $lbsku -AllocationMethod Static
+
+$KRfrontendConfig = Add-AzLoadBalancerFrontendIpConfig -LoadBalancer $KRLB -Name $KRfrontendConfigName -PublicIpAddressId $KRPublicIPoutbound.Id
+
+$KRbackendConfig = Add-AzLoadBalancerBackendAddressPoolConfig -LoadBalancer $KRLB -Name $KRbackendConfigName
+
+$KROutboundRule = Add-AzLoadBalancerOutboundRuleConfig  -LoadBalancer $KRLB -Name $KROutboundRuleName -AllocatedOutboundPort $AllocatedOutboundPort -Protocol $Outboundprotocol -FrontendIpConfiguration $KRLB.FrontendIpConfigurations[1] -BackendAddressPool  $KRLB.BackendAddressPools[1] | Set-AzLoadBalancer
+
+# 
 
 
 ##############
