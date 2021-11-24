@@ -8,73 +8,50 @@ $resourceinfos = Import-csv -Path "C:\Users\shj\shtest\Git_Test\resource_v2.1.cs
 
 # csv 파일 리소스 별 변수 생성
 $VMs = $resourceinfos | Where-Object {$_.kind -eq "vm"}
+$Nics = $resourceinfos | Where-Object {$_.kind -eq "nic"} 
+$LBs = $resourceinfos | Where-Object {$_.kind -eq "lb"}
+
+
+#$LBrules = $resourceinfos | Where-Object {$_.kind -eq "lbrule"}
+#$LBfeips = $resourceinfos | Where-Object {$_.kind -eq "lbfeip"}
+#$LBprobe = $resourceinfos | Where-Object {$_.kind -eq "lbprobe"}
+#$LBpool = $resourceinfos | Where-Object {$_.kind -eq "lbpool"}
+
+# RG 생성 (kc je ue 3ea)
+$RGs = $resourceinfos | Where-Object {$_.kind -eq "resourcegroup"}
+foreach($RG in $RGs){
+    New-AzResourceGroup -Name $RG.name -Location $RG.region
+}
+
+# NSG 생성 및 NSG 세부 규칙 연결 (nsg 1 nsgrule 1ea)
+$nsgs = $resourceinfos | Where-Object {$_.kind -eq "nsg"}
+foreach($nsg in $nsgs){
+    # NSG rule 생성 ("회사 IP"만 접근 가능토록) => NSG Rule 2개 생성 (nsg rule 1ea HTTP))
+    $new_nsgrule = New-AzNetworkSecurityRuleConfig -Name $nsg.nsgrule -Description $nsg.Desc -Access "Allow" -Protocol $nsg.protocol -Direction Inbound -Priority $nsg.priority -SourceAddressPrefix * -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange $nsg.destport
+    New-AzNetworkSecurityGroup -ResourceGroupName $nsg.region -Location $nsg.refer -Name $nsg.name -SecurityRules $new_nsgrule
+}
+
+# Subnet 생성 및 Subnet에 NSG 연결 (Vnet 6ea, Subnet 6ea)
 $Vnets = $resourceinfos | Where-Object {$_.kind -eq "vnet"}
 $Subnets = $resourceinfos | Where-Object {$_.kind -eq "subnet"}
 $gwsubnet = $resourceinfos | Where-Object {$_.kind -eq "gatewaysubnet"}
-$Nics = $resourceinfos | Where-Object {$_.kind -eq "nic"} 
-$Nsgrule = $resourceinfos | Where-Object {$_.kind -eq "nsgrule"}
-$nsgs = $resourceinfos | Where-Object {$_.kind -eq "nsg"}
-$Pips = $resourceinfos | Where-Object {$_.kind -eq "pip"}
-$LBs = $resourceinfos | Where-Object {$_.kind -eq "lb"}
-$LBrules = $resourceinfos | Where-Object {$_.kind -eq "lbrule"}
-$LBfeips = $resourceinfos | Where-Object {$_.kind -eq "lbfeip"}
-$LBprobe = $resourceinfos | Where-Object {$_.kind -eq "lbprobe"}
-$LBpool = $resourceinfos | Where-Object {$_.kind -eq "lbpool"}
-
-
-# $region = $resourceinfos | Where-Object {$_.kind -eq "region"}
-
-# RG 생성
-$RGs = $resourceinfos | Where-Object {$_.kind -eq "resourcegroup"}
-foreach($RG in $RGs){
-    $new_rg = New-AzResourceGroup -Name $RG.name -Location $RG.region
-
-}
-
-# NSG rule 생성 ("회사 IP"만 접근 가능토록) => NSG Rule 2개 생성 (nsg rule 1ea HTTP))
-New-AzNetworkSecurityRuleConfig -Name $nsgrule.name -Description $nsgrule.Desc -Access "Allow" -Protocol $nsgrule.protocol -Direction Inbound -Priority $nsgrule.priority -SourceAddressPrefix $nsgrule.sourceaddress -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange $nsgrule.destport
-
-# NSG 생성 및 NSG 세부 규칙 연결 (nsg 1ea <-> subnet)
-$New_Nsg = for($i=0; $i -lt $nsgs.length; $i++){
-    New-AzNetworkSecurityGroup -ResourceGroupName $new_rg.ResourceGroupName[$i] -Location $new_rg.Location[$i] -Name $nsgs.name[$i] -SecurityRules $new_nsgrule
-}
-
-# Subnet 생성 및 Subnet에 NSG 연결 (Subnet 6ea)
-$New_Subnet = foreach($subnet in $Subnets){
-    New-AzVirtualNetworkSubnetConfig -Name $SUBNET.name -AddressPrefix $SUBNET.ipaddress 
-}
-
-# VNET 생성 및 VNET에 Subnet 연결 (VNET 6ea <-> subnet 6ea) 각 와일드 카드 조건에 일치할 경우 vnet 생성 
-$New_VNET = for($i=0; $i -lt $vnets.length; $i++){
-    if($vnets.name[$i] -like "*kc*") {
-        New-AzVirtualNetwork -Name $vnets.name[$i] -ResourceGroupName $new_rg.ResourceGroupName[0] -Location $new_rg.Location[0] -AddressPrefix $vnets.ipaddress[$i] -Subnet $NEW_SUBNET[$i]
+foreach($vnet in $vnets){
+    $new_vnet = New-AzVirtualNetwork -Name $vnet.name -ResourceGroupName $vnet.refer -Location $vnet.region -AddressPrefix $vnet.ipaddress
+    foreach($subnet in $Subnets){
+        Add-AzVirtualNetworkSubnetConfig -Name $subnet.name -AddressPrefix $subnet.ipaddress -VirtualNetwork $new_vnet
     } 
-    elseif($vnets.name[$i] -like "*je*"){
-        New-AzVirtualNetwork -Name $vnets.name[$i] -ResourceGroupName $new_rg.ResourceGroupName[1] -Location $new_rg.Location[1] -AddressPrefix $vnets.ipaddress[$i] -Subnet $NEW_SUBNET[$i]
-    }
-    else {
-        New-AzVirtualNetwork -Name $vnets.name[$i] -ResourceGroupName $new_rg.ResourceGroupName[2] -Location $new_rg.Location[2] -AddressPrefix $vnets.ipaddress[$i] -Subnet $NEW_SUBNET[$i]
-    }
 }
 
-
-# Peer VNet1 to VNet2.
-Add-AzVirtualNetworkPeering -Name "peer-kc-to-kc2" -VirtualNetwork $New_VNET[0] -RemoteVirtualNetworkId $New_VNET[1].Id
-
-# Peer VNet2 to VNet1.
-Add-AzVirtualNetworkPeering -Name "peer-kc2-to-kc" -VirtualNetwork $New_VNET[1] -RemoteVirtualNetworkId $New_VNET[0].id
-
-# PIP 생성 (PIP 3 ea) s
-$New_Pip =  for($i=0; $i -lt $pips.length; $i++){
-    New-AzPublicIpAddress -Name $pips.name[$i] -ResourceGroupName $new_rg.ResourceGroupName[$i] -AllocationMethod "Static" -Location $new_rg.Location[$i] -Sku $pips.sku[$i]
+# PIP 생성 (PIP 3 ea)
+$Pips = $resourceinfos | Where-Object {$_.kind -eq "pip"}
+$New_Pip = foreach($pip in $Pips){
+    New-AzPublicIpAddress -Name $pip.name -ResourceGroupName $pip.refer -AllocationMethod "Static" -Location $pip.region -Sku $pip.sku
 }
 
 # LB - FEIP 생성 (3ea)
 $new_feips = for($i=0; $i -lt $new_pip.length; $i++){
     New-AzLoadBalancerFrontendIpConfig -Name $LBfeips.Name[$i] -PublicIpAddressId $new_pip.Id[$i]
 }
-
-$new_feips.getType()
 
 # LB - BackEnd POOL 생성 (1ea)
 $new_lbpool = New-AzLoadBalancerBackendAddressPoolConfig -Name $lbpool.name
@@ -123,7 +100,12 @@ for ($i=0; $i -lt $VMs.length; $i++){
     New-AzVM -VM $VirtualMachine -ResourceGroupName $new_rg.ResourceGroupName[$i] -Location $new_rg.Location[$i] -Verbose
 }
 
-# 아웃바운드 규칙 생성 
+
+# Peer VNet1 to VNet2.
+Add-AzVirtualNetworkPeering -Name "peer-kc-to-kc2" -VirtualNetwork $New_VNET[0] -RemoteVirtualNetworkId $New_VNET[1].Id
+
+# Peer VNet2 to VNet1.
+Add-AzVirtualNetworkPeering -Name "peer-kc2-to-kc" -VirtualNetwork $New_VNET[1] -RemoteVirtualNetworkId $New_VNET[0].id
 
 
 
@@ -131,7 +113,7 @@ for ($i=0; $i -lt $VMs.length; $i++){
 # 생성된 모든 리소스 확인
 Get-AzResource | Format-Table
 
-# 생성된 VM 제거 
+# 생성된 VM 제거
 foreach ($rg in $RGs){
     # Stop-azVM -Name $vmremove.name
     # Remove-AzVM -name $vmremove.name -ResourceGroupName $RG.name -force
