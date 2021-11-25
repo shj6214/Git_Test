@@ -19,14 +19,15 @@ $nsgs = $resourceinfos | Where-Object {$_.kind -eq "nsg"}
 foreach($nsg in $nsgs){
     # NSG rule 생성 (HTTP 1ea))
     $new_nsgrule = New-AzNetworkSecurityRuleConfig -Name $nsg.nsgrule -Description $nsg.Desc -Access "Allow" -Protocol $nsg.protocol -Direction Inbound -Priority $nsg.priority -SourceAddressPrefix * -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange $nsg.destport
-    New-AzNetworkSecurityGroup -ResourceGroupName $nsg.region -Location $nsg.refer -Name $nsg.name -SecurityRules $new_nsgrule
+    New-AzNetworkSecurityGroup -ResourceGroupName $nsg.refer -Location $nsg.region -Name $nsg.name -SecurityRules $new_nsgrule
 }
 
-# Subnet 생성 및 Subnet에 NSG 연결 (Vnet 6ea, Subnet 6ea)
+# Subnet, VNET 생성 및 연결 (Vnet 6ea, Subnet 6ea)
 $Vnets = $resourceinfos | Where-Object {$_.kind -eq "vnet"}
 $Subnets = $resourceinfos | Where-Object {$_.kind -eq "subnet"}
 $gwsubnet = $resourceinfos | Where-Object {$_.kind -eq "gatewaysubnet"}
 
+# 수정
 foreach($vnet in $vnets){
     $new_vnet = New-AzVirtualNetwork -Name $vnet.name -ResourceGroupName $vnet.refer -Location $vnet.region -AddressPrefix $vnet.ipaddress
     foreach($subnet in $Subnets){
@@ -34,26 +35,25 @@ foreach($vnet in $vnets){
     } 
 }
 
-# PIP 세팅
-$Pips = $resourceinfos | Where-Object {$_.kind -eq "pip"}
-    # PIP 생성 (PIP 3 ea)
-$New_Pip = foreach($pip in $Pips){
-    New-AzPublicIpAddress -Name $pip.name -ResourceGroupName $pip.refer -AllocationMethod "Static" -Location $pip.region -Sku $pip.sku
-}
 
 # LB 세팅 
 $LBs = $resourceinfos | Where-Object {$_.kind -eq "lb"}
+# # PIP 세팅
+$Pips = $resourceinfos | Where-Object {$_.kind -like "lb"} | Where-Object {$_.pipname -like "*pip"}
 
 foreach($LB in $LBs){
-    
+
+    # LB - PIP 생성 (3ea)
+    $New_Pip = New-AzPublicIpAddress -Name $LB.pipname -ResourceGroupName $pip.refer -AllocationMethod "Static" -Location $lb.region -Sku $lb.sku
+
     # LB - BackEnd POOL 생성 (3ea)
     $new_lbpool = New-AzLoadBalancerBackendAddressPoolConfig -Name $LB.lbPool
 
     # LB - Probe 생성 (3ea)
-    $new_probe = New-AzLoadBalancerProbeConfig -Name $LB.lbprobe -Protocol $LB.protocol -Port $LB.destport -IntervalInSeconds 360 -ProbeCount 5 -RequestPath '/'
+    $new_probe = New-AzLoadBalancerProbeConfig -Name $LB.lbprobe -Protocol $LB.protocol -Port $LB.destport -IntervalInSeconds 360 -ProbeCount 5 
     
     # LB - FEIP 생성 (3ea)
-    $new_FEips = New-AzLoadBalancerFrontendIpConfig -Name $LB.lbfrontip -PublicIpAddressId $New_Pip.Id
+    $new_FEip = New-AzLoadBalancerFrontendIpConfig -Name $LB.lbfrontip -PublicIpAddressId $New_Pip.Id
 
     # LB - LBrule 생성 (3ea)
     $New_LBrules = New-AzLoadBalancerRuleConfig -Name $LB.lbrule -Protocol $LB.protocol -FrontendPort $LB.sourceport -BackendPort $LB.destport -IdleTimeoutInMinutes 15 -FrontendIpConfigurationId $new_FEIP.Id
@@ -61,6 +61,10 @@ foreach($LB in $LBs){
     # LB - 생성 
     New-AzLoadBalancer -ResourceGroupName $LB.refer -Name $LB.name -Location $LB.region -Sku $LB.sku -FrontendIpConfiguration $new_FEIP -BackendAddressPool $new_lbpool -LoadBalancingRule $New_LBrules -Probe $new_probe
 }
+
+
+$lb.gettype()
+$lbs | ft
 
 
 # nic 01 ~ 03 3 개 생성 + 백엔드풀 규칙 추가 

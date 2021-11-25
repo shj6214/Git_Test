@@ -1,4 +1,4 @@
-kind,name,region,refer,lbPool,lbRule,lbfrontip,lbProbe,nsgrule,ipaddress,publicip,size,ostype,publisher,offer,sku,protocol,priority,sourceaddress,sourceport,destaddress,destport,Desc
+kind,name,region,refer,lbPool,lbRule,lbfrontip,lbProbe,nsgrule,ipaddress,pipname,size,ostype,publisher,offer,sku,protocol,priority,sourceaddress,sourceport,destaddress,destport,Desc
 resourcegroup,rg-korea,koreacentral,,,,,,,,,,,,,,,,,,,,
 resourcegroup,rg-japan,japaneast,,,,,,,,,,,,,,,,,,,,
 resourcegroup,rg-america,eastus,,,,,,,,,,,,,,,,,,,,
@@ -18,12 +18,9 @@ gatewaysubnet,gatewaysubnet,japaneast,vnet-je-02,,,,,,10.2.255.0/27,,,,,,,,,,,,,
 vm,vm-kc-01,,,,,,,,,,standard_B1ls,windows,MicrosoftWindowsServer,WindowsServer,2019-Datacenter,,,,,,,
 vm,vm-je-01,,,,,,,,,,standard_B1ls,windows,MicrosoftWindowsServer,WindowsServer,2019-Datacenter,,,,,,,
 vm,vm-ue-01,,,,,,,,,,standard_B1ls,windows,MicrosoftWindowsServer,WindowsServer,2019-Datacenter,,,,,,,
-lb,lb-kc-01,koreacentral,rg-korea,lb-bepool,lb-kc-rule,lb-kc-feip,lb-probe,,,yes,,,,,standard,http,,,80,,80,
-lb,lb-je-01,japaneast,rg-japan,lb-bepool,lb-je-rule,lb-je-feip,lb-probe,,,yes,,,,,standard,http,,,80,,80,
-lb,lb-ue-01,eastus,rg-america,lb-bepool,lb-ue-rule,lb-ue-feip,lb-probe,,,yes,,,,,standard,http,,,80,,80,
-pip,lb-kc-pip,koreacentral,rg-korea,,,,,,,,,,,,standard,,,,,,,
-pip,lb-je-pip,japaneast,rg-japan,,,,,,,,,,,,standard,,,,,,,
-pip,lb-ue-pip,eastus,rg-america,,,,,,,,,,,,standard,,,,,,,
+lb,lb-kc,koreacentral,rg-korea,lb-bepool,lb-kc-rule,lb-kc-feip,lb-probe,,,lb-kc-pip,,,,,standard,Tcp,,,80,,80,
+lb,lb-je,japaneast,rg-japan,lb-bepool,lb-je-rule,lb-je-feip,lb-probe,,,lb-je-pip,,,,,standard,Tcp,,,80,,80,
+lb,lb-ue,eastus,rg-america,lb-bepool,lb-ue-rule,lb-ue-feip,lb-probe,,,lb-ue-pip,,,,,standard,Tcp,,,80,,80,
 nsg,nsg-kc,koreacentral,rg-korea,,,,,http-rule,,,,,,,,Tcp,100,,80,*,80,Allow HTTP
 nsg,nsg-je,japaneast,rg-japan,,,,,http-rule,,,,,,,,Tcp,100,,80,*,80,Allow HTTP
 nsg,nsg-ue,eastus,rg-america,,,,,http-rule,,,,,,,,Tcp,100,,80,*,80,Allow HTTP
