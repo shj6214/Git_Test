@@ -69,11 +69,30 @@ while ($true) {
     if ($null -eq $processlivecheck) {        
         Write-Host "메모장이 죽었습니다."    
     }    
-    Start-Sleep -Seconds 5}
-
+    Start-Sleep -Seconds 5
+}
 
 # 명령 후, 프로세스가 종료되는 것을 확인할 수 있다. 
 # 다음주에 볼 것은 about do 
 # 반복문은 모니터링 아니면 사용할 일없음. 
 # 리소스 만드는 것은 foreach로 마무리. 나머지는 루프 돌일일이 없다.
 # do while, do until... 
+
+######### 11 30 교육 ###########
+$job = Start-Job -ScriptBlock { Get-Process -Name pwsh }
+Receive-Job
+
+Get-Job
+remove-job 
+
+
+#
+
+while (condition){
+    $processliveCheck = get-process -Name notepad
+    if($null -eq $processliveCheck){
+        
+    }
+
+    Start-Sleep -Seconds 5 
+}

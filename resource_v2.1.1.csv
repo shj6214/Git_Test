@@ -1,0 +1,27 @@
+kind,name,region,refer,remote,nics,subnet,lbout,lbPool,lbRule,lbfrontip,lbProbe,nsgrule,ipaddress,pipname,gwconf,type,Vpntype,vpnpool,vpn,size,ostype,publisher,offer,sku,protocol,priority,sourceaddress,sourceport,destaddress,destport,Desc
+resourcegroup,rg-america,eastus,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+resourcegroup,rg-japan,japaneast,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+resourcegroup,rg-korea,koreacentral,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+vnet,vnet-ue-01,eastus,rg-america,vnet-ue-02,,,,,,,,,10.0.0.0/16,,,,,,,,,,,,,,,,,,
+vnet,vnet-ue-02,eastus,rg-america,vnet-ue-01,,,,,,,,,10.1.0.0/16,,,,,,,,,,,,,,,,,,
+vnet,vnet-je-01,japaneast,rg-japan,vnet-je-02,,,,,,,,,10.2.0.0/16,,,,,,,,,,,,,,,,,,
+vnet,vnet-je-02,japaneast,rg-japan,vnet-je-01,,,,,,,,,10.3.0.0/16,,,,,,,,,,,,,,,,,,
+vnet,vnet-kc-01,koreacentral,rg-korea,vnet-kc-02,,,,,,,,,10.4.0.0/16,,,,,,,,,,,,,,,,,,
+vnet,vnet-kc-02,koreacentral,rg-korea,vnet-kc-01,,,,,,,,,10.5.0.0/16,,,,,,,,,,,,,,,,,,
+subnet,snet-ue-01,eastus,vnet-ue-01,,,,,,,,,,10.0.0.0/24,,,,,,,,,,,,,,,,,,
+subnet,snet-ue-02,eastus,vnet-ue-02,,,,,,,,,,10.1.0.0/24,,,,,,,,,,,,,,,,,,
+subnet,snet-je-01,japaneast,vnet-je-01,,,,,,,,,,10.2.0.0/24,,,,,,,,,,,,,,,,,,
+subnet,snet-je-02,japaneast,vnet-je-02,,,,,,,,,,10.3.0.0/24,,,,,,,,,,,,,,,,,,
+subnet,snet-kc-01,koreacentral,vnet-kc-01,,,,,,,,,,10.4.0.0/24,,,,,,,,,,,,,,,,,,
+subnet,snet-kc-02,koreacentral,vnet-kc-02,,,,,,,,,,10.5.0.0/24,,,,,,,,,,,,,,,,,,
+gatewaysubnet,GatewaySubnet,japaneast,vnet-je-01,,,,,,,,,,10.2.255.0/27,gw-pip,gwipconfig1,vpn,RouteBased,192.168.0.0/24,,,,,,VpnGW1,ikev2,,,,,,
+vgw,vgw-je-01,japaneast,rg-japan,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+vm,vm-ue-01,eastus,rg-america,,nic01,snet-ue-02,,,,,,,,,,,,,,standard_B1ls,windows,MicrosoftWindowsServer,WindowsServer,2019-Datacenter,,,,,,,
+vm,vm-je-01,japaneast,rg-japan,,nic02,snet-je-02,,,,,,,,,,,,,,standard_B1ls,windows,MicrosoftWindowsServer,WindowsServer,2019-Datacenter,,,,,,,
+vm,vm-kc-01,koreacentral,rg-korea,,nic03,snet-kc-02,,,,,,,,,,,,,,standard_B1ls,windows,MicrosoftWindowsServer,WindowsServer,2019-Datacenter,,,,,,,
+lb,lb-ue,eastus,rg-america,,nic01,snet-ue-02,lb-ue-out,lb-ue-pool,lb-ue-rule,lb-ue-feip,lb-probe,,,lb-ue-pip,,,,,,,,,,basic,Tcp,,,80,,80,
+lb,lb-je,japaneast,rg-japan,,nic02,snet-je-02,lb-je-out,lb-je-pool,lb-je-rule,lb-je-feip,lb-probe,,,lb-je-pip,,,,,,,,,,basic,Tcp,,,80,,80,
+lb,lb-kc,koreacentral,rg-korea,,nic03,snet-kc-02,lb-kc-out,lb-ue-pool,lb-kc-rule,lb-kc-feip,lb-probe,,,lb-kc-pip,,,,,,,,,,basic,Tcp,,,80,,80,
+nsg,nsg-ue,eastus,rg-america,,,,,,,,,http-rule,,,,,,,,,,,,,Tcp,100,,80,*,80,Allow HTTP
+nsg,nsg-je,japaneast,rg-japan,,,,,,,,,http-rule,,,,,,,,,,,,,Tcp,100,,80,*,80,Allow HTTP
+nsg,nsg-kc,koreacentral,rg-korea,,,,,,,,,http-rule,,,,,,,,,,,,,Tcp,100,,80,*,80,Allow HTTP
