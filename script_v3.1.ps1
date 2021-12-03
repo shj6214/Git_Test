@@ -7,23 +7,20 @@ Connect-AzAccount
 Register-AzResourceProvider -ProviderNamespace "Microsoft.DBforMySQL"
 Install-Module -Name Az.MySql -AllowPrerelease
 
-
 # declare variable 
-$RGName1 = "rg-mysql"
-$location1 = "eastus"
-$ServName1 = "MysqlServShj"
-
+$RGName_my = "rg-mysql"
+$location = "eastus"
+$ServName_my = "MysqlServShj"
 $startIp = "123.141.145.22"
 $endip = "123.141.145.22"
-
 $admin = "shjoo"
 $Password = ConvertTo-SecureString "P@ssw0rd1!" -AsPlainText -Force
 
 # resource group create 
-New-AzResourceGroup -Name $RGName1 -Location $location1
+New-AzResourceGroup -Name $RGName_my -Location $location1
 
 # create administrator info & mysql server 
-New-AzMySqlServer -Name $ServName1 -ResourceGroupName $RGName1 -Sku "GP_Gen5_2" -GeoRedundantBackup "Enabled" -Location $location1 `
+New-AzMySqlServer -Name $ServName_my -ResourceGroupName $RGName_my -Sku "GP_Gen5_2" -GeoRedundantBackup "Enabled" -Location $location `
 -AdministratorUsername $admin -AdministratorLoginPassword $Password -SslEnforcement "Disabled"
 
 # create firewall rule
@@ -125,7 +122,7 @@ $DNSZoneGroupName = "DNS-Zone-Group"
 $DNSZone = New-AzPrivateDnsZoneGroup -ResourceGroupName $RGName_ms -privateEndpointName $privateEndpointName -Name $DNSZoneGroupName -PrivateDnsZoneConfig $DNSConfig
 
 # Azure 서비스 및 리소스가 이 서버에 액세스할 수 있도록 허용 : 보안 공격 취약
-
+# 
 
 ##
 
