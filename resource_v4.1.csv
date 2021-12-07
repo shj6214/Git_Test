@@ -1,0 +1,14 @@
+kind,name,region,refer,rg,pip,nsg,ipaddress,pipname,gwconf,type,Vpntype,vpnpool,vpn,size,ostype,publisher,offer,sku,protocol,priority,sourceaddress,sourceport,destaddress,Desc
+resourcegroup,rg-korea,koreacentral,,,,,,,,,,,,,,,,,,,,,,
+vnet,vnet-kc-01,koreacentral,rg-korea,,,,10.0.0.0/16,,,,,,,,,,,,,,,,,
+vnet,vnet-kc-02,koreacentral,rg-korea,,,,10.1.0.0/16,,,,,,,,,,,,,,,,,
+subnet,snet-kc-01,koreacentral,vnet-kc-01,,,,10.0.0.0/24,,,,,,,,,,,,,,,,,
+subnet,snet-kc-02,koreacentral,vnet-kc-02,,,,10.1.0.0/24,,,,,,,,,,,,,,,,,
+vm,vm-kc-01,koreacentral,vnet-kc-01,rg-korea,yes,nsg-kc-01,,,,,,,,standard_B1s,windows,MicrosoftWindowsServer,WindowsServer,2019-Datacenter,,,,,,
+vm,vm-kc-02,koreacentral,vnet-kc-02,rg-korea,yes,nsg-kc-02,,,,,,,,standard_B1ls,Linux,Canonical,UbuntuServer,18.04-LTS,,,,,,
+nsg,nsg-kc-01,koreacentral,rg-korea,,,,,,,,,,,,,,,,,,,,,
+nsg,nsg-kc-02,koreacentral,rg-korea,,,,,,,,,,,,,,,,,,,,,
+nsgrule,rdp-rule,,nsg-kc-01,,,,,,,,,,,,,,,,Tcp,1000,,*,*,Allow RDP
+nsgrule,http-rule,,nsg-kc-01,,,,,,,,,,,,,,,,Tcp,1001,,*,*,Allow HTTP
+nsgrule,ssh-rule,,nsg-kc-02,,,,,,,,,,,,,,,,Tcp,1002,,*,*,Allow SSH
+nsgrule,http-rule,,nsg-kc-02,,,,,,,,,,,,,,,,Tcp,1003,,*,*,Allow HTTP
