@@ -10,7 +10,7 @@ $RG = $resourceinfos | Where-Object {$_.kind -eq "resourcegroup"}
 
 New-AzResourceGroup -Name $RG.name -Location $RG.region
 
-# Subnet, VNET 변수 선언 
+# Subnet, VNET 변수 선언
 $Vnets = $resourceinfos | Where-Object {$_.kind -eq "vnet"}
 $Subnets = $resourceinfos | Where-Object {$_.kind -eq "subnet"}
 
@@ -89,13 +89,32 @@ $get_vnet_2 = Get-AzVirtualNetwork -Name "vnet*02"
 
 # 동일 리전간 Peering ( KC <-> KC 2 )
 # KC-01 <-> KC-02
-    Add-AzVirtualNetworkPeering -Name ($get_vnet_1.name + "-To-" + $get_vnet_2.name) -VirtualNetwork $get_vnet_1 -RemoteVirtualNetworkId $get_vnet_2.id -AllowForwardedTraffic 
+    Add-AzVirtualNetworkPeering -Name ($get_vnet_1.name + "-To-" + $get_vnet_2.name) -VirtualNetwork $get_vnet_1 -RemoteVirtualNetworkId $get_vnet_2.id -AllowForwardedTraffic
     Add-AzVirtualNetworkPeering -Name ($get_vnet_2.name + "-To-" + $get_vnet_1.name) -VirtualNetwork $get_vnet_2 -RemoteVirtualNetworkId $get_vnet_1.id -AllowForwardedTraffic    
 
 ###########################
 
-# 리소스 그룹 제거 
+# 리소스 그룹 제거
 Remove-AzResourceGroup -Name $RG.name -force
 
+# if ($i -eq 1) { # NIC01일 경우(window vm)
+#     $nic = @{
+#         Name = "NIC0$i"
+#         resourcegroupname = $ResourceGroupName
+#         location = $Location
+#         Subnet = $Vnet.Subnets[0]
+#         NetworkSecurityGroup = $NSG
+#         PublicIpAddress = $PIP # PUBLIC IP 생성
+#     }
+#     $nicVM = New-AzNetworkInterface @nic
 
-
+# } else { #NIC02, 03일 경우 (linux vm)
+#     $nic2 = @{
+#         Name = "NIC0$i"
+#         resourcegroupname = $ResourceGroupName
+#         location = $Location
+#         Subnet = $Vnet.Subnets[0]
+#         NetworkSecurityGroup = $NSG
+#     }
+#         $nicVM2 = New-AzNetworkInterface @nic2
+# }

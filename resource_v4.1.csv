@@ -1,14 +1,17 @@
-kind,name,region,refer,rg,pip,nsg,ipaddress,pipname,gwconf,type,Vpntype,vpnpool,vpn,size,ostype,publisher,offer,sku,protocol,priority,sourceaddress,sourceport,destaddress,Desc
-resourcegroup,rg-korea,koreacentral,,,,,,,,,,,,,,,,,,,,,,
-vnet,vnet-kc-01,koreacentral,rg-korea,,,,10.0.0.0/16,,,,,,,,,,,,,,,,,
-vnet,vnet-kc-02,koreacentral,rg-korea,,,,10.1.0.0/16,,,,,,,,,,,,,,,,,
-subnet,snet-kc-01,koreacentral,vnet-kc-01,,,,10.0.0.0/24,,,,,,,,,,,,,,,,,
-subnet,snet-kc-02,koreacentral,vnet-kc-02,,,,10.1.0.0/24,,,,,,,,,,,,,,,,,
-vm,vm-kc-01,koreacentral,vnet-kc-01,rg-korea,yes,nsg-kc-01,,,,,,,,standard_B1s,windows,MicrosoftWindowsServer,WindowsServer,2019-Datacenter,,,,,,
-vm,vm-kc-02,koreacentral,vnet-kc-02,rg-korea,yes,nsg-kc-02,,,,,,,,standard_B1ls,Linux,Canonical,UbuntuServer,18.04-LTS,,,,,,
-nsg,nsg-kc-01,koreacentral,rg-korea,,,,,,,,,,,,,,,,,,,,,
-nsg,nsg-kc-02,koreacentral,rg-korea,,,,,,,,,,,,,,,,,,,,,
-nsgrule,rdp-rule,,nsg-kc-01,,,,,,,,,,,,,,,,Tcp,1000,,*,*,Allow RDP
-nsgrule,http-rule,,nsg-kc-01,,,,,,,,,,,,,,,,Tcp,1001,,*,*,Allow HTTP
-nsgrule,ssh-rule,,nsg-kc-02,,,,,,,,,,,,,,,,Tcp,1002,,*,*,Allow SSH
-nsgrule,http-rule,,nsg-kc-02,,,,,,,,,,,,,,,,Tcp,1003,,*,*,Allow HTTP
+kind,name,region,refer,rg,pip,nsg,ipaddress,pipname,gwconf,type,Vpntype,vpnpool,vpn,size,ostype,publisher,offer,sku,protocol,priority,sourceaddress,sourceport,destaddress,destport,Desc
+resourcegroup,rg-us,eastus,,,,,,,,,,,,,,,,,,,,,,,
+vnet,vnet-ue-01,eastus,rg-us,,,,10.0.0.0/16,,,,,,,,,,,,,,,,,,
+vnet,vnet-ue-02,eastus,rg-us,,,,10.1.0.0/16,,,,,,,,,,,,,,,,,,
+subnet,snet-ue-01,eastus,vnet-ue-01,,,,10.0.0.0/24,,,,,,,,,,,,,,,,,,
+subnet,snet-ue-02,eastus,vnet-ue-02,,,,10.1.0.0/24,,,,,,,,,,,,,,,,,,
+vm,vm-ue-01,eastus,vnet-ue-01,rg-us,yes,nsg-ue-01,,,,,,,,standard_B2s,windows,MicrosoftWindowsServer,WindowsServer,2019-Datacenter,,,,,,,
+vm,vm-ue-02,eastus,vnet-ue-02,rg-us,yes,nsg-ue-01,,,,,,,,standard_B2s,Linux,Canonical,UbuntuServer,18.04-LTS,,,,,,,
+vm,vm-ue-03,eastus,vnet-ue-01,rg-us,yes,nsg-ue-02,,,,,,,,standard_B2s,windows,MicrosoftWindowsServer,WindowsServer,2019-Datacenter,,,,,,,
+vm,vm-ue-04,eastus,vnet-ue-02,rg-us,yes,nsg-ue-02,,,,,,,,standard_B2s,Linux,Canonical,UbuntuServer,18.04-LTS,,,,,,,
+nsg,nsg-ue-01,eastus,rg-us,,,,,,,,,,,,,,,,,,,,,,
+nsg,nsg-ue-02,eastus,rg-us,,,,,,,,,,,,,,,,,,,,,,
+nsgrule,rdp-rule,,nsg-ue-01,,,,,,,,,,,,,,,,Tcp,1000,,*,*,3389,Allow RDP
+nsgrule,http-rule,,nsg-ue-01,,,,,,,,,,,,,,,,Tcp,1001,,*,*,80,Allow HTTP
+nsgrule,ssh-rule,,nsg-ue-02,,,,,,,,,,,,,,,,Tcp,1000,,*,*,22,Allow SSH
+nsgrule,http-rule,,nsg-ue-02,,,,,,,,,,,,,,,,Tcp,1001,,*,*,80,Allow HTTP
+sql,mssql-ue-shj,eastus,vnet-ue-01,rg-us,,,123.141.145.22,,,,,,,,,,,,,,,,,,
