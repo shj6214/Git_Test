@@ -48,21 +48,23 @@ foreach($VM in $VMs){
         $pip = New-AzPublicIpAddress -Name ($VM.name+"-pip") -ResourceGroupName $vm.rg -AllocationMethod Static -Location $vm.region -Sku "Standard"
         $vnet = Get-Azvirtualnetwork -name $VM.refer -ResourceGroupName $vm.rg
         $VirtualMachine = New-AzVMConfig -VMName $VM.name -VMSize $VM.size
-
-        if($vm.ostype -eq "Windows"){
-            Set-AzVMOperatingSystem -VM $VirtualMachine -Windows -ComputerName $VM.name -Credential $cred
-        }
-        else {
-            Set-AzVMOperatingSystem -VM $VirtualMachine -Linux -ComputerName $VM.name -Credential $cred
-        }
-        Set-AzVMSourceImage -VM $VirtualMachine -PublisherName $VM.publisher -Offer $VM.offer -Skus $VM.sku -Version "latest"
-
         $nsg = Get-AzNetworkSecurityGroup -Name $VM.nsg
         $nic = New-AzNetworkInterface -ResourceGroupName $VM.rg -Location $VM.region `
         -Name ($VM.name+"-NIC") -SubnetId $vnet.subnets.Id -PublicIpAddressId $pip.Id -NetworkSecurityGroupId $nsg.Id
 
-        Add-AzVMNetworkInterface -VM $VirtualMachine -Id $nic.id
-        New-AzVM -VM $VirtualMachine -ResourceGroupName $VM.rg -Location $VM.region -Verbose
+        if($vm.ostype -eq "Windows"){
+            Set-AzVMOperatingSystem -VM $VirtualMachine -Windows -ComputerName $VM.name -Credential $cred
+            Set-AzVMSourceImage -VM $VirtualMachine -PublisherName $VM.publisher -Offer $VM.offer -Skus $VM.sku -Version "latest"
+            Add-AzVMNetworkInterface -VM $VirtualMachine -Id $nic.id
+            New-AzVM -VM $VirtualMachine -ResourceGroupName $VM.rg -Location $VM.region -Verbose
+        }
+        else {
+            Set-AzVMOperatingSystem -VM $VirtualMachine -Linux -ComputerName $VM.name -Credential $cred
+            Set-AzVMSourceImage -VM $VirtualMachine -PublisherName $VM.publisher -Offer $VM.offer -Skus $VM.sku -Version "latest"
+            Add-AzVMNetworkInterface -VM $VirtualMachine -Id $nic.id
+            New-AzVM -VM $VirtualMachine -ResourceGroupName $VM.rg -Location $VM.region -Verbose
+        }
+        
   }-ArgumentList $VM,$Cred
 }
 
@@ -177,3 +179,16 @@ Stop-Job $job2
 #     }
 #         $nicVM2 = New-AzNetworkInterface @nic2
 # }
+
+$test2 = Get-AzVirtualNetwork -Name "vnet-*"
+
+$test3 = @{
+    network = $test2.Subnets
+}
+$test3
+
+$test4 = Start-Job -Name "test" -ScriptBlock { param($test3)
+    $test3.network
+} -ArgumentList $test3
+
+receive-job -Job $test4

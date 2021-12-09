@@ -21,8 +21,6 @@ New-AzResourceGroup -Name $RG.name -Location $RG.region
 
 ##
 
-
-##
 # VNET 및 SUBNET 배포 ( VNET 2 EA / SUBNET 2 EA )
 foreach($vnet in $vnets){
     $new_vnet = New-AzVirtualNetwork -Name $vnet.name -ResourceGroupName $vnet.refer -Location $vnet.region -AddressPrefix $vnet.ipaddress
@@ -45,72 +43,44 @@ foreach($nsg in $nsgs){
     }
 }
 
+
 # VM 4 대 배포
 foreach($VM in $VMs){
     Start-Job -Name ($VM.name+"-Job") -ScriptBlock { param($VM, $Cred)
-        ##
-        $VMsetting = @{ VMName = $vm.resourcename; VMsize = $vm.size}    
-        $vmos = @{ 
-            ComputerName = $vm.computername ; 
-            Credential = $Credential}    
-        $vmimage = @{ PublisherName = $vm.publisher; 
-                    offer = $vm.offer ; Skus = $vm.sku ; 
-                    version = $vm.version}    
-        
-        if ($vm.ostype -eq "window") {        
-            $windowVMconfig = New-AzVMConfig @VMsetting | Set-AzVMOperatingSystem @vmos -Windows -Credential $Credential -ProvisionVMAgent -EnableAutoUpdate | Set-AzVMSourceImage @vmimage | Add-AzVMNetworkInterface -Id $nic.Id        
-            $windowVirtalMachine = @{resourcegroupname = $rg.resourcegroupname ; location = $rg.location ; vm = $windowVMconfig}        
-            New-AzVM @windowVirtalMachine
-            }else { 
-                $linuxVMconfig = New-AzVMConfig @VMsetting  | Set-AzVMOperatingSystem @vmos -Linux -Credential $Credential  | Set-AzVMSourceImage @vmimage | Add-AzVMNetworkInterface -Id $nic.Id
-                $linuxVirtalMachine = @{resourcegroupname = $rg.resourcegroupname ; location = $rg.location ; vm = $linuxVMconfig
-            }        
-            New-AzVM @linuxVirtalMachine
-        }
-        f
-        oreach ($vm in $vms) {
-            $vmJob = Start-Job -Name Job -ScriptBlock {param ( $vm, $Credential)
-            $get_vnet = Get-AzVirtualNetwork -Name $vm.memberof -ResourceGroupName $rg.resourcegroupname
-            $new_pip = New-AzPublicIpAddress -Name ($vm.resourcename + "-pip") -ResourceGroupName $rg.resourcegroupname -Location $rg.location -AllocationMethod Static
-            $nic = New-AzNetworkInterface -Name ($vm.resourcename + "-nic") -ResourceGroupName $rg.resourcegroupname -location $rg.location -SubnetId $get_vnet.Subnets.id -PublicIpAddressId $new_pip.ID
-            $VMsetting = @{ VMName = $vm.resourcename ; VMsize = $vm.size}
-            $vmos = @{ ComputerName = $vm.computername ; Credential = $Credential}
-            $vmimage = @{ PublisherName = $vm.publisher; offer = $vm.offer ; Skus = $vm.sku ; version = $vm.version}
-        } -ArgumentList $vm, $Credential
 
-        ##
-        # PIP 생성
-        $pip = New-AzPublicIpAddress -Name ($VM.name+"-pip") -ResourceGroupName $vm.rg -AllocationMethod Static -Location $vm.region -Sku "Standard"
+        $pip = New-AzPublicIpAddress -Name ($VM.name+"-pip") -ResourceGroupName $vm.rg -AllocationMethod Static -Location $vm.region -Sku "Standard" 
         $vnet = Get-Azvirtualnetwork -name $VM.refer -ResourceGroupName $vm.rg
-        $VirtualMachine = New-AzVMConfig -VMName $VM.name -VMSize $VM.size
         $nsg = Get-AzNetworkSecurityGroup -Name $VM.nsg
-
-        if($vm.ostype -eq "Windows"){
-            Set-AzVMOperatingSystem -VM $VirtualMachine -Windows -ComputerName $VM.name -Credential $cred
-        }
-        else {
-            Set-AzVMOperatingSystem -VM $VirtualMachine -Linux -ComputerName $VM.name -Credential $cred
-        }
-        Set-AzVMSourceImage -VM $VirtualMachine -PublisherName $VM.publisher -Offer $VM.offer -Skus $VM.sku -Version "latest"
-
         $nic = New-AzNetworkInterface -ResourceGroupName $VM.rg -Location $VM.region `
         -Name ($VM.name+"-NIC") -SubnetId $vnet.subnets.Id -PublicIpAddressId $pip.Id -NetworkSecurityGroupId $nsg.Id
 
-        Add-AzVMNetworkInterface -VM $VirtualMachine -Id $nic.id
-        New-AzVM -VM $VirtualMachine -ResourceGroupName $VM.rg -Location $VM.region -Verbose
-  }-ArgumentList $VM,$Cred
-}
+        $VMConfig=@{ VMName=$VM.name; VMSize=$VM.size}
+        $osconfig = @{ ComputerName=$VM.name; Credential=$cred }
+        $image = @{ PublisherName=$VM.publisher; Offer=$VM.offer; Skus=$VM.sku; Version="latest" }
 
+        if($vm.ostype -eq "Windows"){
+            $VMConfigs = New-AzVMConfig @VMConfig | Set-AzVMOperatingSystem @osconfig -Windows | Set-AzVMSourceImage @image | Add-AzVMNetworkInterface -Id $nic.id
+            $VirtualMachine = @{ VM=$VMConfigs; ResourceGroupName=$VM.rg; Location=$VM.region }
+            New-AzVM @VirtualMachine -Verbose
+        }
+        else {
+            $VMConfigs = New-AzVMConfig @VMConfig | Set-AzVMOperatingSystem @osconfig -Linux | Set-AzVMSourceImage @image | Add-AzVMNetworkInterface -Id $nic.id
+            $VirtualMachine = @{ VM=$VMConfigs; ResourceGroupName=$VM.rg; Location=$VM.region }
+            New-AzVM @VirtualMachine -Verbose
+        }
+  } -ArgumentList $VM, $Cred
+}
 
 get-job -Name "vm-ue-*"
 get-job | Remove-Job
 Receive-Job -Name "vm-ue-*-Job"
+stop-job "vm-ue-*-Job"
+
+##
 
 # 참조
-# 불러와서 쓰기 + 문자열 if x
 # $vmvnet = Get-Azvirtualnetwork -name $vmcreate.tag -ResourceGroupName $vmcreate.rg
 # $nic = New-AzNetworkInterface -Name ($vmcreate.name + "NIC") -ResourceGroupName $vmcreate.rg -Location $vmcreate.location -SubnetId $vmvnet.Subnets.Id -PrivateIpAddress $vmcreate.ip
-###################################
 
 # VNET Peering 변수 선언(vnet_UE-01,02)
 $get_vnet_1 = Get-AzVirtualNetwork -Name "vnet*01"
@@ -158,8 +128,7 @@ $job2 = Start-Job -Name "Job2" -ScriptBlock { param($mssql, $VMAdminUser, $VMAdm
     New-AzSqlDatabase -ResourceGroupName $rg.ResourceGroupName -ServerName ($mssql.name+"-serv") `
         -DatabaseName ($mssql.name+"-db") -Edition "GeneralPurpose" `
         -ComputeModel "Serverless" -ComputeGeneration "Gen5" `
-        -VCore 2 -MinimumCapacity 2 `
-        -SampleName "AdventureWorksLT"
+        -VCore 2 -MinimumCapacity 2 -SampleName "AdventureWorksLT"
 
     # 프라이빗 커넥션 연결 설정 및 Endpoint 생성
     $SQLServerResourceId = (Get-AzSqlServer -Name ($mssql.name+"-serv"))
@@ -187,8 +156,17 @@ get-job | Remove-Job
 receive-job -Job $job2
 Stop-Job $job2
 
-
 ###########################
+$test2 = @{
+    network = $new_vnet.Subnets
+}
+
+Start-Job -Name "test" -ScriptBlock { param($test2)
+    $test2.Subnets
+    # $test2
+} -ArgumentList $test2
+
+Receive-Job -Name test
 
 
 # if ($i -eq 1) { # NIC01일 경우(window vm)
@@ -202,13 +180,3 @@ Stop-Job $job2
 #     }
 #     $nicVM = New-AzNetworkInterface @nic
 
-# } else { #NIC02, 03일 경우 (linux vm)
-#     $nic2 = @{
-#         Name = "NIC0$i"
-#         resourcegroupname = $ResourceGroupName
-#         location = $Location
-#         Subnet = $Vnet.Subnets[0]
-#         NetworkSecurityGroup = $NSG
-#     }
-#         $nicVM2 = New-AzNetworkInterface @nic2
-# }
