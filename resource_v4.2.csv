@@ -1,0 +1,13 @@
+kind,name,region,refer,rg,pip,nsg,ipaddress,pipname,gwconf,type,Vpntype,vpnpool,vpn,size,ostype,publisher,offer,sku,protocol,priority,sourceaddress,sourceport,destaddress,destport,Desc
+resourcegroup,rg-us,eastus,,,,,,,,,,,,,,,,,,,,,,,
+vnet,vnet-ue-01,eastus,rg-us,,,,10.0.0.0/16,,,,,,,,,,,,,,,,,,
+subnet,snet-ue-01,eastus,vnet-ue-01,,,,10.0.0.0/24,,,,,,,,,,,,,,,,,,
+vm,vm-ue-01,eastus,vnet-ue-01,rg-us,yes,nsg-ue-01,,,,,,,,standard_F2s_v2,Linux,Canonical,0001-com-ubuntu-server-focal,20_04-lts-gen2,,,,,,,
+vm,vm-ue-02,eastus,vnet-ue-01,rg-us,yes,nsg-ue-01,,,,,,,,standard_F2s_v2,Linux,Canonical,0001-com-ubuntu-server-focal,20_04-lts-gen2,,,,,,,
+vm,vm-ue-03,eastus,vnet-ue-01,rg-us,yes,nsg-ue-01,,,,,,,,standard_F2s_v2,Linux,Canonical,0001-com-ubuntu-server-focal,20_04-lts-gen2,,,,,,,
+vm,vm-ue-04,eastus,vnet-ue-01,rg-us,yes,nsg-ue-01,,,,,,,,standard_F2s_v2,Linux,Canonical,0001-com-ubuntu-server-focal,20_04-lts-gen2,,,,,,,
+nsg,nsg-ue-01,eastus,rg-us,,,,,,,,,,,,,,,,,,,,,,
+nsgrule,ssh-rule,,nsg-ue-01,,,,,,,,,,,,,,,,Tcp,1000,,*,*,22,Allow SSH
+nsgrule,http-rule,,nsg-ue-01,,,,,,,,,,,,,,,,Tcp,1001,,*,*,80,Allow HTTP
+nsgrule,cronograf-rule,,nsg-ue-01,,,,,,,,,,,,,,,,Tcp,1002,,*,*,8888,Allow cronograf
+nsgrule,grafana-rule,,nsg-ue-01,,,,,,,,,,,,,,,,Tcp,1003,,*,*,3000,Allow grafana
